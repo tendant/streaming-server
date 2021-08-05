@@ -1,11 +1,11 @@
 ARG NGINX_VERSION=1.16.1
-ARG NGINX_RTMP_VERSION=1.2.1
+ARG NGINX_RTMP_VERSION=1.2.2
 ARG FFMPEG_VERSION=4.2.1
 ARG S3FS_VERSION=v1.85
 
 ##############################
 # Build the NGINX-build image.
-FROM alpine:3.8 as build-nginx
+FROM alpine:3.14 as build-nginx
 ARG NGINX_VERSION
 ARG NGINX_RTMP_VERSION
 
@@ -53,7 +53,7 @@ RUN cd /tmp/nginx-${NGINX_VERSION} && \
 
 ###############################
 # Build the FFmpeg-build image.
-FROM alpine:3.8 as build-ffmpeg
+FROM alpine:3.14 as build-ffmpeg
 ARG FFMPEG_VERSION
 ARG PREFIX=/usr/local
 ARG MAKEFLAGS="-j4"
@@ -71,6 +71,7 @@ RUN apk add --update \
   libvorbis-dev \
   libwebp-dev \
   libtheora-dev \
+  openssl-dev \
   opus-dev \
   pkgconf \
   pkgconfig \
@@ -122,7 +123,7 @@ RUN rm -rf /var/cache/* /tmp/*
 
 ##########################
 # Build the release image.
-FROM alpine:3.8
+FROM alpine:3.14
 LABEL MAINTAINER Efriandika Pratama <efriandika@gmail.com>
 
 RUN apk add --update \
@@ -152,15 +153,8 @@ RUN mkdir -p /opt/data && mkdir /www
 ADD static /www/static
 
 # Add S3FS
-RUN apk --update add fuse alpine-sdk automake autoconf libxml2-dev fuse-dev curl-dev git bash;
-RUN git clone https://github.com/s3fs-fuse/s3fs-fuse.git; \
-   cd s3fs-fuse; \
-   git checkout tags/${S3FS_VERSION}; \
-   ./autogen.sh; \
-   ./configure --prefix=/usr; \
-   make; \
-   make install; \
-   rm -rf /var/cache/apk/*;
+RUN echo http://dl-cdn.alpinelinux.org/alpine/edge/testing >> /etc/apk/repositories
+RUN apk --update add s3fs-fuse
 
 ADD entrypoint.sh /
 RUN chmod +x /entrypoint.sh
